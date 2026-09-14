@@ -67,7 +67,19 @@ tables:
 Copy the matching files from the authorized CoA client-data package into that
 directory before deploying the stack. Do not substitute files from another
 client revision. The startup check deliberately blocks `coa-worldserver` when
-one is absent or empty.
+one is absent, empty, or does not match the validated hashes.
+
+For the validated native-v4 client snapshot, all three tables are stored under
+`DBFilesClient` in `Data/patch-M.MPQ`:
+
+| File | Records | Record size | SHA256 |
+| --- | ---: | ---: | --- |
+| `Appearances.dbc` | 42,903 | 68 | `7c7b27fa9e535d7ec7549eb61ef1490ec69b990fa243a2ed36fb6dbf7df118f9` |
+| `ItemAppearances.dbc` | 202,932 | 12 | `c2533eaa0c84ccb35e1087b6244e8881f89642385e646a9f7fc6dddf1e6ea434` |
+| `VanityCollection.dbc` | 10,764 | 308 | `aae91e8c4966790be090c1a69d124745aca4bfa4a09f43b52f0789667c98d46c` |
+
+These identities belong to this client snapshot. Review and update the guarded
+hashes together if a later authorized client version changes one of the tables.
 
 ## 4. Prepare a separate Windows client copy
 
