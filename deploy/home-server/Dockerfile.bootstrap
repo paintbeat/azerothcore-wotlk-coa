@@ -1,0 +1,23 @@
+FROM ubuntu:24.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG TZ=Etc/UTC
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    default-mysql-client \
+    python3 \
+    tzdata \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /azerothcore
+
+COPY apps/coa-world/ apps/coa-world/
+COPY data/coa-world/ data/coa-world/
+COPY data/sql/updates/ data/sql/updates/
+COPY deploy/home-server/bootstrap-world.sh /usr/local/bin/bootstrap-world
+
+RUN chmod 0755 /usr/local/bin/bootstrap-world
+
+ENTRYPOINT ["/usr/local/bin/bootstrap-world"]
