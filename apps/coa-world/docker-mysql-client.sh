@@ -34,7 +34,6 @@ coa_require_mysql_environment() {
 coa_mysql() {
   mysql \
     --defaults-extra-file="$COA_MYSQL_DEFAULTS_FILE" \
-    --no-login-paths \
     --batch \
     --raw \
     --skip-column-names \
