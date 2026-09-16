@@ -53,6 +53,7 @@ ARG CSCRIPTS_DEFAULT_LINKAGE="static"
 ARG CWITH_WARNINGS="ON"
 ARG CMAKE_EXTRA_OPTIONS=""
 ARG GIT_DISCOVERY_ACROSS_FILESYSTEM=1
+ARG BUILD_JOBS
 
 ARG CCACHE_DIR="/ccache"
 ARG CCACHE_MAXSIZE="1000MB"
@@ -81,16 +82,13 @@ ARG CACHEBUST=1
 WORKDIR /azerothcore/build
 
 RUN --mount=type=cache,target=/ccache,sharing=locked \
-    # This may seem silly (and it is), but AzerothCore wants the git repo at
-    # build time. The git repo is _huge_ and it's not something that really
-    # makes sense to mount into the container, but this way we can let the build
-    # have the information it needs without including the hundreds of megabytes
-    # of git repo into the container.
-    --mount=type=bind,target=/azerothcore/.git,source=.git \
-    git config --global --add safe.directory /azerothcore \
+    # Portainer checks out Git-backed stacks without the repository metadata.
+    # AzerothCore supports archive builds explicitly, so do not require .git.
+    build_jobs="${BUILD_JOBS:-$(($(nproc) + 1))}" \
     && cmake /azerothcore \
        -G Ninja \
        -DCMAKE_INSTALL_PREFIX="/azerothcore/env/dist"  \
+       -DWITHOUT_GIT=ON                               \
        -DAPPS_BUILD="all"                              \
        -DTOOLS_BUILD="$CTOOLS_BUILD"                   \
        -DSCRIPTS="$CSCRIPTS"                           \
@@ -102,7 +100,7 @@ RUN --mount=type=cache,target=/ccache,sharing=locked \
        -DCMAKE_CXX_COMPILER_LAUNCHER="ccache"          \
        -DCMAKE_C_COMPILER_LAUNCHER="ccache"            \
        -DBoost_USE_STATIC_LIBS="ON"                    \
-    && cmake --build . --config "$CTYPE" -j $(($(nproc) + 1)) \
+    && cmake --build . --config "$CTYPE" -j "$build_jobs" \
     && cmake --install . --config "$CTYPE"
 
 #############################
@@ -215,6 +213,29 @@ COPY --chown=$DOCKER_USER:$DOCKER_USER\
 
 CMD [ "/azerothcore/env/dist/bin/dbimport" ]
 
+#######################
+# CoA World Bootstrap #
+#######################
+
+# This target installs the CoA world package into a new, empty world schema
+# before dbimport applies normal AzerothCore migrations. It deliberately avoids
+# the C++ build stage so database-only bootstrap/configuration jobs stay small.
+FROM skeleton AS coa-world-bootstrap
+
+LABEL description="Conquest of Azeroth world bootstrap and realm configuration"
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends default-mysql-client python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY apps/coa-world /azerothcore/apps/coa-world
+COPY data/coa-world /azerothcore/data/coa-world
+COPY data/sql/updates/pending_db_world /azerothcore/data/sql/updates/pending_db_world
+COPY modules/mod-ascension-compat/data/sql/db-world \
+    /azerothcore/modules/mod-ascension-compat/data/sql/db-world
+
+CMD ["bash", "/azerothcore/apps/coa-world/docker-bootstrap.sh"]
+
 ###############
 # Client Data #
 ###############
@@ -247,7 +268,7 @@ VOLUME /azerothcore/env/dist/data
 
 USER $DOCKER_USER
 
-CMD ["bash",  "-c", "source /azerothcore/apps/installer/includes/functions.sh && inst_download_client_data" ]
+CMD ["bash", "/azerothcore/apps/docker/docker-download-client-data.sh"]
 
 ##################
 # Map Extractors #
