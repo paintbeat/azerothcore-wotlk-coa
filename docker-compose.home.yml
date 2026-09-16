@@ -161,6 +161,7 @@ services:
       AC_DATA_DIR: /azerothcore/env/dist/data
       AC_LOGS_DIR: /azerothcore/env/dist/logs
       AC_ASCENSION_COMPAT_ALLOW_REMOTE_CLIENTS: "1"
+      AC_ASCENSION_COMPAT_PLAINTEXT_WORLD_HEADERS: "1"
       AC_ASCENSION_COMPAT_DBC_DIRECTORY: /azerothcore/env/dist/data/dbc/Ascension
       AC_ASCENSION_COMPAT_LOG_CONSUMED_PACKETS: "0"
     ports:
